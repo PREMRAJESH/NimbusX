@@ -19,6 +19,8 @@ import { spacing } from '@theme/spacing';
 import { typography } from '@theme/typography';
 import Avatar from '@components/common/Avatar';
 
+import { persistor } from '@store/index';
+
 type NavigationProp = StackNavigationProp<ChatStackParamList, 'Profile'>;
 
 interface SettingItemProps {
@@ -50,6 +52,8 @@ const SettingsScreen = () => {
   const handleLogout = useCallback(async () => {
     await authService.signOut();
     dispatch(logout());
+    // Purge all persisted data so contacts/messages don't leak to the next account
+    await persistor.purge();
   }, [dispatch]);
 
   const goToProfile = useCallback(() => {
@@ -83,21 +87,25 @@ const SettingsScreen = () => {
             icon="key-outline"
             title="Account"
             subtitle="Privacy, security, change number"
+            onPress={() => navigation.navigate('AccountSettings' as any)}
           />
           <SettingItem
             icon="chatbubble-outline"
             title="Chats"
             subtitle="Theme, wallpapers, chat history"
+            onPress={() => navigation.navigate('ChatsSettings' as any)}
           />
           <SettingItem
             icon="notifications-outline"
             title="Notifications"
             subtitle="Message, group & call tones"
+            onPress={() => navigation.navigate('NotificationsSettings' as any)}
           />
           <SettingItem
             icon="help-circle-outline"
             title="Help"
             subtitle="Help center, contact us, privacy policy"
+            onPress={() => navigation.navigate('HelpSettings' as any)}
           />
         </View>
 
