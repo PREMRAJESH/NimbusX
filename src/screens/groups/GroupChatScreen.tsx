@@ -80,8 +80,62 @@ const GroupChatScreen = () => {
         createdAt: Date.now(),
         status: 'sent',
       });
+      dispatch(upsertMessage({ ...tempMsg, status: 'sent' }));
     } catch (error) {
       console.error('Failed to send group message:', error);
+      dispatch(upsertMessage({ ...tempMsg, status: 'failed' }));
+    }
+  };
+
+  const handleSendGif = async (gif: { url: string }) => {
+    if (!user) return;
+    const tempMsg: any = {
+      id: `temp_${Date.now()}`,
+      chatId,
+      senderId: user.uid,
+      text: '',
+      mediaUrl: gif.url,
+      mediaType: 'gif',
+      createdAt: Date.now(),
+      status: 'pending',
+    };
+    dispatch(upsertMessage(tempMsg));
+    try {
+      await firestoreService.sendMessage({
+        chatId, senderId: user.uid, text: '',
+        mediaUrl: gif.url, mediaType: 'gif',
+        createdAt: Date.now(), status: 'sent',
+      });
+      dispatch(upsertMessage({ ...tempMsg, status: 'sent' }));
+    } catch (error) {
+      console.error('Failed to send GIF:', error);
+      dispatch(upsertMessage({ ...tempMsg, status: 'failed' }));
+    }
+  };
+
+  const handleSendSticker = async (sticker: { url: string }) => {
+    if (!user) return;
+    const tempMsg: any = {
+      id: `temp_${Date.now()}`,
+      chatId,
+      senderId: user.uid,
+      text: '',
+      mediaUrl: sticker.url,
+      mediaType: 'sticker',
+      createdAt: Date.now(),
+      status: 'pending',
+    };
+    dispatch(upsertMessage(tempMsg));
+    try {
+      await firestoreService.sendMessage({
+        chatId, senderId: user.uid, text: '',
+        mediaUrl: sticker.url, mediaType: 'sticker',
+        createdAt: Date.now(), status: 'sent',
+      });
+      dispatch(upsertMessage({ ...tempMsg, status: 'sent' }));
+    } catch (error) {
+      console.error('Failed to send sticker:', error);
+      dispatch(upsertMessage({ ...tempMsg, status: 'failed' }));
     }
   };
 
@@ -111,7 +165,12 @@ const GroupChatScreen = () => {
           onEndReachedThreshold={0.5}
           contentContainerStyle={styles.listContent}
         />
-        <ChatInput onSend={handleSend} onTyping={() => {}} />
+        <ChatInput
+          onSend={handleSend}
+          onTyping={() => {}}
+          onSendGif={handleSendGif}
+          onSendSticker={handleSendSticker}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
