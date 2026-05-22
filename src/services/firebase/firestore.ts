@@ -278,4 +278,60 @@ export const firestoreService = {
         console.error('Listen statuses failed:', error);
       });
   },
+
+  /**
+   * Update group details (name, description, avatarUrl).
+   * Only admin should call this — permission check is done on the UI side.
+   */
+  async updateGroupDetails(chatId: string, data: { name?: string; description?: string; avatarUrl?: string }) {
+    const updates: Record<string, any> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.description !== undefined) updates.description = data.description;
+    if (data.avatarUrl !== undefined) updates.avatarUrl = data.avatarUrl;
+
+    return firestore().collection(COLLECTIONS.CHATS).doc(chatId).update(updates);
+  },
+
+  /**
+   * Remove a member from a group
+   */
+  async removeGroupMember(chatId: string, uid: string) {
+    return firestore().collection(COLLECTIONS.CHATS).doc(chatId).update({
+      members: firestore.FieldValue.arrayRemove(uid),
+      [`unreadCount.${uid}`]: firestore.FieldValue.delete(),
+      [`typing.${uid}`]: firestore.FieldValue.delete(),
+    });
+  },
+
+  /**
+   * Leave a group (self-remove)
+   */
+  async leaveGroup(chatId: string, uid: string) {
+    return this.removeGroupMember(chatId, uid);
+  },
+
+  /**
+   * Delete a group and all its messages.
+   * Messages are deleted in batches first (before the chat doc) because
+   * message-level security rules call get() on the parent chat doc to
+   * verify membership — deleting both in one batch would cause a race.
+   */
+  async deleteGroup(chatId: string) {
+    const messagesRef = firestore()
+      .collection(COLLECTIONS.CHATS)
+      .doc(chatId)
+      .collection(COLLECTIONS.MESSAGES);
+
+    // Delete messages in batches of 400 (Firestore batch limit is 500)
+    let snapshot = await messagesRef.limit(400).get();
+    while (!snapshot.empty) {
+      const batch = firestore().batch();
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      snapshot = await messagesRef.limit(400).get();
+    }
+
+    // Now delete the chat document itself
+    return firestore().collection(COLLECTIONS.CHATS).doc(chatId).delete();
+  },
 };
